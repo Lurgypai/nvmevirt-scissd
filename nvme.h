@@ -328,6 +328,7 @@ struct nvme_reservation_status {
 	op(nvme_cmd_kv_iter_read, 0xB2) \
 	op(nvme_cmd_kv_exist, 0xB3) \
 	op(nvme_cmd_kv_batch, 0x85) \
+	op(nvme_cmd_augment, 0x85) \
 
 #define ENUM_NVME_OP(name, value) name = value,
 #define STRING_NVME_OP(name, value) [name] = #name,
@@ -371,6 +372,47 @@ struct nvme_rw_command {
 	__le32 reftag;
 	__le16 apptag;
 	__le16 appmask;
+};
+
+/*
+        0x85,   // op code
+        0,      // flags (unused)
+        0,      // reserved (unused)
+        nsid,      // namespace (default 1)
+
+        0,      // user cdwd2
+        0,      // user cdwd3
+
+        0,      // metadata buffer
+        0,      // data buffer
+        0,      // metadata length
+        0,      // data length
+
+        sourceSlba,      // user cdwd10
+        destSlba,      // user cdwd11
+        nlb,      // user cdwd12
+        augmentation,      // user cdwd13
+        0,      // user cdwd14
+        0,      // user cdwd15
+
+        0,      // timeout, in ms, if non-zero does a timeout
+        0       // result, set on completion
+*/
+
+struct nvme_augment_command {
+	__u8 opcode;
+	__u8 flags;
+	__u16 command_id;
+	__le32 nsid;
+	__le32 cdw2[2];
+	__le64 metadata;
+	__le64 prp1;
+	__le64 prp2;
+	__le32 slba;
+	__le32 sdlba;
+	__le32 nlb;
+	__le32 augmentation;
+	__le32 cdw14[2];
 };
 
 struct nvme_get_log_page_command {
@@ -619,6 +661,7 @@ struct nvme_command {
 	union {
 		struct nvme_common_command common;
 		struct nvme_rw_command rw;
+		struct nvme_augment_command aug;
 		struct nvme_get_log_page_command get_log_page;
 		struct nvme_identify identify;
 		struct nvme_features features;

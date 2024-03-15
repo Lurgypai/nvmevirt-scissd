@@ -7,6 +7,7 @@
 
 #include "nvmev.h"
 #include "dma.h"
+#include "augmentation.h"
 
 #if (SUPPORTED_SSD_TYPE(CONV) || SUPPORTED_SSD_TYPE(ZNS))
 #include "ssd.h"
@@ -85,6 +86,22 @@ static unsigned int __do_perform_io(int sqid, int sq_entry)
 			memcpy(nvmev_vdev->ns[nsid].mapped + offset, vaddr + mem_offs, io_size);
 		} else if (cmd->opcode == nvme_cmd_read) {
 			memcpy(vaddr + mem_offs, nvmev_vdev->ns[nsid].mapped + offset, io_size);
+		} else if (cmd->opcode == nvme_cmd_augment) {
+			struct nvme_augment_command *aug = &sq_entry(sq_entry).aug;
+			__le32 slba = aug->slba;
+			__le32 sdlba = aug->sdlba;
+			__le32 nlb = (io_size >> 9) - 1;
+			__le32 augmentation = aug->augmentation;
+			// NVMEV_INFO("running augmentation %u on slba %u, storing in %u, %u + 1 blocks\n", augmentation, slba, sdlba, nlb);
+
+			size_t dest_offset = sdlba << 9;
+			offset = slba << 9;
+			void* mapped = nvmev_vdev->ns[nsid].mapped;
+            void* source = mapped + offset;
+            void* dest = mapped + dest_offset;
+            
+			augment(source, dest, nlb, augmentation);
+            memcpy(dest, source, io_size);
 		}
 
 		kunmap_atomic(vaddr);

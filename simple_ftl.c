@@ -84,6 +84,7 @@ bool simple_proc_nvme_io_cmd(struct nvmev_ns *ns, struct nvmev_request *req,
 	switch (cmd->common.opcode) {
 	case nvme_cmd_write:
 	case nvme_cmd_read:
+	case nvme_cmd_augment:
 		ret->nsecs_target = __schedule_io_units(
 			cmd->common.opcode, cmd->rw.slba,
 			__cmd_io_size((struct nvme_rw_command *)cmd), __get_wallclock());
